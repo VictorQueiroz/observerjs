@@ -16,6 +16,77 @@ describe('Observer', function() {
 		expect(times).toEqual(1);
 	});
 
+	it('should get modified path', function() {
+		var changedPath;
+
+		object				= {};
+		observer 			= new Observer(object);
+
+		observer.on('changedProperty', function(path, data) {
+			changedPath = path;
+		});
+
+		object.someDeepObject = {
+			anotherObject: {
+				someDeepValue: true
+			}
+		};
+		observer.deliverChangeRecords();
+
+		expect('someDeepObject').toBe(changedPath);
+
+		object.someDeepObject.anotherObject.anotherDeepValue = false;
+		observer.deliverChangeRecords();
+
+		expect('someDeepObject.anotherObject.anotherDeepValue').toBe(changedPath);
+		
+		object.someDeepObject.anotherObject = {anotherDeepValue: false};
+		observer.deliverChangeRecords();
+
+		expect('someDeepObject.anotherObject').toBe(changedPath);
+	});
+
+	it('should watch arrays', function() {
+		var changedPath, addedObject, someDeepArray = [];
+
+		object				= {	someDeepArray: someDeepArray	};
+		observer 			= new Observer(object);
+
+		observer.on('changedProperty', function(path, data) {
+			if(!path.match(/length/)) {
+				changedPath = path;
+			}
+		});
+
+		object.someDeepArray.push(0);
+		observer.deliverChangeRecords();
+
+		expect('someDeepArray.0').toBe(changedPath);
+
+		addedObject = {
+			someDeepObject: {}
+		};
+		object.someDeepArray.push(addedObject);
+		observer.deliverChangeRecords();
+
+		expect('someDeepArray.1').toBe(changedPath);
+
+		addedObject.someDeepObject.someDeepValue = true;
+		observer.deliverChangeRecords();
+
+		expect('someDeepArray.1.someDeepObject.someDeepValue').toBe(changedPath);
+
+		someDeepArray.splice(1, 1);
+		observer.deliverChangeRecords();
+
+		expect('someDeepArray.1').toBe(changedPath);
+		
+		object.someDeepArray.push(addedObject);
+		observer.deliverChangeRecords();
+
+		expect('someDeepArray.1').toBe(changedPath);
+	});
+
 	it('should watch object the entire keys', function() {
 		object		= {};
 		times			= 0;
